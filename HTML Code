@@ -1,0 +1,595 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>East Harlem Escape Map · 10029</title>
+    <!-- Leaflet CSS + Dark Theme Tiles -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+        }
+
+        body {
+            background: #0b0e14;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            color: #e0e0e0;
+        }
+
+        /* ===== SIDEBAR (dark emergency theme) ===== */
+        .sidebar {
+            width: 320px;
+            background: #12171f;
+            border-right: 1px solid #2a3340;
+            display: flex;
+            flex-direction: column;
+            padding: 18px 14px;
+            overflow-y: auto;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+
+        .sidebar h1 {
+            font-size: 1.7rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            color: #f0f4fa;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar h1 i {
+            color: #e74c3c;
+            font-size: 1.6rem;
+        }
+
+        .zip-badge {
+            background: #1e2a36;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #b0c7e9;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8f9eb5;
+            margin: 20px 0 10px 0;
+            font-weight: 500;
+        }
+
+        /* Layer toggles */
+        .layer-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #1a212b;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid #2d3848;
+        }
+
+        .layer-item:hover {
+            background: #232d3a;
+            border-color: #4a5f7a;
+        }
+
+        .layer-item i {
+            width: 22px;
+            color: #b0c2da;
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+
+        .layer-item input {
+            margin-left: auto;
+            transform: scale(1.1);
+            accent-color: #3498db;
+        }
+
+        /* search box */
+        .search-box {
+            background: #1a212b;
+            border-radius: 40px;
+            padding: 4px 4px 4px 18px;
+            display: flex;
+            align-items: center;
+            border: 1px solid #2e3a48;
+            margin: 12px 0 8px;
+        }
+
+        .search-box i {
+            color: #8f9eb5;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            padding: 12px 8px;
+            color: #f0f4fa;
+            font-size: 0.95rem;
+            width: 100%;
+            outline: none;
+        }
+
+        .search-box input::placeholder {
+            color: #6b7e97;
+            font-weight: 300;
+        }
+
+        .search-box button {
+            background: #2c3e50;
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid #3e566b;
+        }
+
+        .search-box button:hover {
+            background: #3a5a78;
+        }
+
+        /* Quick actions grid */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0 5px;
+        }
+
+        .quick-btn {
+            background: #1e2936;
+            border: 1px solid #31465c;
+            color: #e6edf5;
+            padding: 12px 6px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .quick-btn i {
+            font-size: 1.4rem;
+            color: #5dade2;
+        }
+
+        .quick-btn:hover {
+            background: #263544;
+            border-color: #5dade2;
+            transform: translateY(-1px);
+        }
+
+        .legend-note {
+            font-size: 0.8rem;
+            color: #8da1b5;
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px dashed #2e3e4e;
+        }
+
+        /* Map container */
+        #map {
+            flex: 1;
+            height: 100vh;
+            background: #0f1419;
+        }
+
+        /* custom popup dark style */
+        .leaflet-popup-content-wrapper {
+            background: #1c262f;
+            color: #f0f4fa;
+            border-radius: 14px;
+            border: 1px solid #3f5568;
+        }
+        .leaflet-popup-tip {
+            background: #1c262f;
+        }
+        .leaflet-popup-content {
+            margin: 14px 16px;
+            font-size: 14px;
+        }
+        .leaflet-popup-content strong {
+            color: #ffffff;
+        }
+        .popup-address {
+            color: #b0c7e9;
+            margin: 5px 0;
+        }
+        .popup-phone {
+            color: #7fb3d5;
+            margin-bottom: 10px;
+        }
+        .directions-link {
+            display: inline-block;
+            background: #2c5f7c;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        .directions-link i {
+            margin-right: 6px;
+        }
+        .directions-link:hover {
+            background: #3f7b9e;
+        }
+
+        /* route line style */
+        .route-line {
+            stroke: #f1c40f;
+            stroke-width: 4;
+            stroke-dasharray: 8 6;
+        }
+
+        /* mobile adjustments */
+        @media (max-width: 700px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 45vh;
+                border-right: none;
+                border-bottom: 2px solid #2a3a4a;
+            }
+            #map {
+                height: 55vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1><i class="fas fa-map-signs"></i> FLOOD ESCAPE MAP</h1>
+        <div class="zip-badge">
+            <i class="fas fa-map-pin"></i> East Harlem, NY 10029
+        </div>
+
+        <div class="section-title"><i class="fas fa-layer-group"></i> TOGGLE RESOURCES</div>
+        <div class="layer-group" id="layer-toggles">
+            <!-- dynamically filled, but we can hardcode for clarity -->
+            <label class="layer-item">
+                <i class="fas fa-hospital" style="color:#e74c3c;"></i> Hospitals (5)
+                <input type="checkbox" id="toggle-hospitals" checked>
+            </label>
+            <label class="layer-item">
+                <i class="fas fa-fire-extinguisher" style="color:#e67e22;"></i> FDNY (4)
+                <input type="checkbox" id="toggle-fire" checked>
+            </label>
+            <label class="layer-item">
+                <i class="fas fa-shield-alt" style="color:#3498db;"></i> NYPD (2)
+                <input type="checkbox" id="toggle-police" checked>
+            </label>
+            <label class="layer-item">
+                <i class="fas fa-people-arrows" style="color:#2ecc71;"></i> Shelters (3)
+                <input type="checkbox" id="toggle-shelters" checked>
+            </label>
+            <label class="layer-item">
+                <i class="fas fa-subway" style="color:#f39c12;"></i> Subway Stations (5)
+                <input type="checkbox" id="toggle-subway" checked>
+            </label>
+            <label class="layer-item">
+                <i class="fas fa-road" style="color:#9b59b6;"></i> Exit Routes (6)
+                <input type="checkbox" id="toggle-routes" checked>
+            </label>
+        </div>
+
+        <div class="section-title"><i class="fas fa-search"></i> SEARCH LOCATION</div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search-input" placeholder="Hospital, station, shelter...">
+            <button id="search-btn"><i class="fas fa-arrow-right"></i></button>
+        </div>
+
+        <div class="section-title"><i class="fas fa-bolt"></i> QUICK ACTIONS</div>
+        <div class="quick-actions">
+            <div class="quick-btn" id="nearest-hospital-btn">
+                <i class="fas fa-hospital"></i> Nearest Hospital
+            </div>
+            <div class="quick-btn" id="evac-routes-btn">
+                <i class="fas fa-route"></i> Show Evac Routes
+            </div>
+            <div class="quick-btn" id="nearest-shelter-btn">
+                <i class="fas fa-home"></i> Nearest Shelter
+            </div>
+            <div class="quick-btn" id="locate-btn">
+                <i class="fas fa-location-dot"></i> Locate Me
+            </div>
+        </div>
+        <div class="legend-note">
+            <i class="fas fa-info-circle"></i> Click any marker for address, phone & Google Maps directions.<br>
+            <i class="fas fa-moon"></i> Dark theme · emergency ready
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        (function(){
+            // ----- INIT MAP (dark tile) -----
+            const map = L.map('map', {
+                zoomControl: true,
+                attributionControl: true
+            }).setView([40.789, -73.945], 14); // centered on East Harlem 10029
+
+            // Dark theme tiles (CartoDB Dark Matter)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; CartoDB'
+            }).addTo(map);
+
+            // ----- LAYER GROUPS -----
+            const hospitalsLayer = L.layerGroup();
+            const fireLayer = L.layerGroup();
+            const policeLayer = L.layerGroup();
+            const sheltersLayer = L.layerGroup();
+            const subwayLayer = L.layerGroup();
+            const routesLayer = L.layerGroup(); // for evacuation polylines
+
+            // Add to map by default (checkboxes start checked)
+            hospitalsLayer.addTo(map);
+            fireLayer.addTo(map);
+            policeLayer.addTo(map);
+            sheltersLayer.addTo(map);
+            subwayLayer.addTo(map);
+            routesLayer.addTo(map);
+
+            // ----- DATA: Markers (address, phone simulated) -----
+            
+            // Hospitals (5)
+            const hospitalData = [
+                { name: 'Metropolitan Hospital Center', lat: 40.7847, lng: -73.9442, address: '1901 1st Ave, New York, NY 10029', phone: '(212) 423-6262' },
+                { name: 'Mount Sinai Hospital', lat: 40.7900, lng: -73.9530, address: '1 Gustave L Levy Pl, New York, NY 10029', phone: '(212) 241-6500' },
+                { name: 'Harlem Hospital Center', lat: 40.8125, lng: -73.9405, address: '506 Lenox Ave, New York, NY 10037', phone: '(212) 939-1000' },
+                { name: 'CityMD Urgent Care', lat: 40.7830, lng: -73.9465, address: '235 E 95th St, New York, NY 10128', phone: '(212) 369-6000' },
+                { name: 'NYC Health + Hospitals/Gotham Health', lat: 40.7982, lng: -73.9387, address: '158 E 115th St, New York, NY 10029', phone: '(844) 692-4692' }
+            ];
+
+            // Fire stations (4) - FDNY in 10029 area
+            const fireData = [
+                { name: 'FDNY Engine 53 / Ladder 43', lat: 40.7855, lng: -73.9470, address: '1836 3rd Ave, New York, NY 10029', phone: '(212) 570-4253' },
+                { name: 'FDNY Engine 91', lat: 40.7960, lng: -73.9418, address: '242 E 111th St, New York, NY 10029', phone: '(212) 860-8191' },
+                { name: 'FDNY Engine 58 / Ladder 26', lat: 40.8012, lng: -73.9490, address: '1367 5th Ave, New York, NY 10026', phone: '(212) 722-1758' },
+                { name: 'FDNY Engine 35 / Ladder 14', lat: 40.7919, lng: -73.9362, address: '2282 3rd Ave, New York, NY 10035', phone: '(212) 996-2535' }
+            ];
+
+            // Police precincts (2)
+            const policeData = [
+                { name: '23rd Precinct', lat: 40.7875, lng: -73.9433, address: '162 E 102nd St, New York, NY 10029', phone: '(212) 860-6411' },
+                { name: '25th Precinct', lat: 40.7999, lng: -73.9385, address: '120 E 119th St, New York, NY 10035', phone: '(212) 860-6511' }
+            ];
+
+            // Emergency Shelters (3) - schools/community centers
+            const shelterData = [
+                { name: 'P.S. 146 - Ann M. Short', lat: 40.7860, lng: -73.9402, address: '421 E 106th St, New York, NY 10029', phone: '(212) 860-5831' },
+                { name: 'East Harlem Community Center', lat: 40.7965, lng: -73.9355, address: '413 E 120th St, New York, NY 10035', phone: '(212) 996-1716' },
+                { name: 'Taino Towers Community Room', lat: 40.7935, lng: -73.9388, address: '225 E 105th St, New York, NY 10029', phone: '(212) 369-1400' }
+            ];
+
+            // Subway stations (5) - 4/5/6 and 2/3 access
+            const subwayData = [
+                { name: '96th St (4/6)', lat: 40.7850, lng: -73.9471, address: 'Lexington Ave & 96th St', phone: 'MTA Info: 511' },
+                { name: '103rd St (4/6)', lat: 40.7906, lng: -73.9455, address: 'Lexington Ave & 103rd St', phone: 'MTA Info: 511' },
+                { name: '110th St (4/6)', lat: 40.7958, lng: -73.9438, address: 'Lexington Ave & 110th St', phone: 'MTA Info: 511' },
+                { name: '116th St (4/6)', lat: 40.8003, lng: -73.9418, address: 'Lexington Ave & 116th St', phone: 'MTA Info: 511' },
+                { name: '125th St (4/5/6)', lat: 40.8042, lng: -73.9397, address: 'Lexington Ave & 125th St', phone: 'MTA Info: 511' }
+            ];
+
+            // ----- Marker creation function (with popup) -----
+            function createMarker(data, iconHtml, iconColor, layerGroup) {
+                const icon = L.divIcon({
+                    html: `<div style="background:${iconColor}; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 8px black;">${iconHtml}</div>`,
+                    className: 'custom-div-icon',
+                    iconSize: [28, 28],
+                    popupAnchor: [0, -14]
+                });
+
+                const marker = L.marker([data.lat, data.lng], { icon: icon });
+                
+                // Popup content
+                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${data.lat},${data.lng}`;
+                marker.bindPopup(`
+                    <strong>${data.name}</strong><br>
+                    <div class="popup-address">${data.address}</div>
+                    <div class="popup-phone"><i class="fas fa-phone-alt"></i> ${data.phone}</div>
+                    <a class="directions-link" href="${googleMapsUrl}" target="_blank"><i class="fas fa-directions"></i> Google Maps directions</a>
+                `);
+                
+                marker.addTo(layerGroup);
+                return marker;
+            }
+
+            // Populate layers
+            hospitalData.forEach(h => createMarker(h, '<i class="fas fa-hospital" style="color:white; font-size:14px;"></i>', '#c0392b', hospitalsLayer));
+            fireData.forEach(f => createMarker(f, '<i class="fas fa-fire-extinguisher" style="color:white; font-size:14px;"></i>', '#d35400', fireLayer));
+            policeData.forEach(p => createMarker(p, '<i class="fas fa-shield-alt" style="color:white; font-size:14px;"></i>', '#2980b9', policeLayer));
+            shelterData.forEach(s => createMarker(s, '<i class="fas fa-home" style="color:white; font-size:14px;"></i>', '#27ae60', sheltersLayer));
+            subwayData.forEach(s => createMarker(s, '<i class="fas fa-subway" style="color:white; font-size:14px;"></i>', '#f39c12', subwayLayer));
+
+            // ----- EVACUATION ROUTES (Polylines) -----
+            // Approximate major exit routes: FDR access, bridges, crosstown
+            const routeStyle = { color: '#f1c40f', weight: 4, opacity: 0.9, dashArray: '8, 6' };
+            
+            // FDR Drive access at 96th St
+            L.polyline([[40.7820, -73.9390], [40.7840, -73.9320]], routeStyle).bindPopup('FDR Drive access (96th St)').addTo(routesLayer);
+            // FDR access 116th St
+            L.polyline([[40.7985, -73.9385], [40.7990, -73.9310]], routeStyle).bindPopup('FDR Drive access (116th St)').addTo(routesLayer);
+            // Willis Ave Bridge approach
+            L.polyline([[40.8035, -73.9300], [40.8050, -73.9250]], routeStyle).bindPopup('Willis Ave Bridge → Bronx').addTo(routesLayer);
+            // 3rd Ave Bridge
+            L.polyline([[40.8070, -73.9320], [40.8110, -73.9280]], routeStyle).bindPopup('3rd Ave Bridge').addTo(routesLayer);
+            // Major Crosstown: 125th St
+            L.polyline([[40.8040, -73.9550], [40.8040, -73.9300]], { color: '#e67e22', weight: 4, dashArray: '5,5' }).bindPopup('125th St Crosstown').addTo(routesLayer);
+            // 96th St Crosstown
+            L.polyline([[40.7850, -73.9600], [40.7850, -73.9350]], { color: '#e67e22', weight: 4, dashArray: '5,5' }).bindPopup('96th St Crosstown').addTo(routesLayer);
+
+            // ----- TOGGLE CHECKBOXES -----
+            document.getElementById('toggle-hospitals').addEventListener('change', (e) => e.target.checked ? hospitalsLayer.addTo(map) : map.removeLayer(hospitalsLayer));
+            document.getElementById('toggle-fire').addEventListener('change', (e) => e.target.checked ? fireLayer.addTo(map) : map.removeLayer(fireLayer));
+            document.getElementById('toggle-police').addEventListener('change', (e) => e.target.checked ? policeLayer.addTo(map) : map.removeLayer(policeLayer));
+            document.getElementById('toggle-shelters').addEventListener('change', (e) => e.target.checked ? sheltersLayer.addTo(map) : map.removeLayer(sheltersLayer));
+            document.getElementById('toggle-subway').addEventListener('change', (e) => e.target.checked ? subwayLayer.addTo(map) : map.removeLayer(subwayLayer));
+            document.getElementById('toggle-routes').addEventListener('change', (e) => e.target.checked ? routesLayer.addTo(map) : map.removeLayer(routesLayer));
+
+            // ----- SEARCH FUNCTIONALITY -----
+            const allMarkers = [
+                ...hospitalData.map(d => ({...d, type: 'hospital'})),
+                ...fireData.map(d => ({...d, type: 'fire'})),
+                ...policeData.map(d => ({...d, type: 'police'})),
+                ...shelterData.map(d => ({...d, type: 'shelter'})),
+                ...subwayData.map(d => ({...d, type: 'subway'}))
+            ];
+
+            function performSearch() {
+                const query = document.getElementById('search-input').value.trim().toLowerCase();
+                if (!query) return;
+                const match = allMarkers.find(m => m.name.toLowerCase().includes(query) || m.address.toLowerCase().includes(query));
+                if (match) {
+                    map.setView([match.lat, match.lng], 17);
+                    // open popup manually
+                    const targetLayer = 
+                        match.type === 'hospital' ? hospitalsLayer : 
+                        match.type === 'fire' ? fireLayer : 
+                        match.type === 'police' ? policeLayer : 
+                        match.type === 'shelter' ? sheltersLayer : subwayLayer;
+                    targetLayer.eachLayer(layer => {
+                        if (layer.getLatLng().lat === match.lat && layer.getLatLng().lng === match.lng) {
+                            layer.openPopup();
+                        }
+                    });
+                } else {
+                    alert('Location not found. Try "Metropolitan" or "125th".');
+                }
+            }
+            document.getElementById('search-btn').addEventListener('click', performSearch);
+            document.getElementById('search-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') performSearch(); });
+
+            // ----- QUICK ACTIONS -----
+            let currentRouteLine = null; // for nearest hospital/shelter line
+            
+            // Helper: find nearest from given array and draw line
+            function findNearestAndRoute(dataArray, layerGroup, fromLatLng) {
+                if (!fromLatLng) {
+                    alert('Could not determine location. Enable location or use "Locate Me".');
+                    return;
+                }
+                let nearest = null;
+                let minDist = Infinity;
+                dataArray.forEach(item => {
+                    const d = map.distance(fromLatLng, [item.lat, item.lng]);
+                    if (d < minDist) { minDist = d; nearest = item; }
+                });
+                if (nearest) {
+                    map.setView([nearest.lat, nearest.lng], 15);
+                    // draw line
+                    if (currentRouteLine) map.removeLayer(currentRouteLine);
+                    currentRouteLine = L.polyline([fromLatLng, [nearest.lat, nearest.lng]], {
+                        color: '#f1c40f', weight: 5, dashArray: '10, 8', className: 'route-line'
+                    }).addTo(map);
+                    
+                    // open popup
+                    const targetGroup = layerGroup;
+                    targetGroup.eachLayer(layer => {
+                        if (layer.getLatLng().lat === nearest.lat && layer.getLatLng().lng === nearest.lng) {
+                            layer.openPopup();
+                        }
+                    });
+                }
+            }
+
+            // Nearest Hospital
+            document.getElementById('nearest-hospital-btn').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        findNearestAndRoute(hospitalData, hospitalsLayer, [pos.coords.latitude, pos.coords.longitude]);
+                    }, () => {
+                        const center = map.getCenter();
+                        findNearestAndRoute(hospitalData, hospitalsLayer, [center.lat, center.lng]);
+                    });
+                } else {
+                    const center = map.getCenter();
+                    findNearestAndRoute(hospitalData, hospitalsLayer, [center.lat, center.lng]);
+                }
+            });
+
+            // Nearest Shelter
+            document.getElementById('nearest-shelter-btn').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        findNearestAndRoute(shelterData, sheltersLayer, [pos.coords.latitude, pos.coords.longitude]);
+                    }, () => {
+                        const center = map.getCenter();
+                        findNearestAndRoute(shelterData, sheltersLayer, [center.lat, center.lng]);
+                    });
+                } else {
+                    const center = map.getCenter();
+                    findNearestAndRoute(shelterData, sheltersLayer, [center.lat, center.lng]);
+                }
+            });
+
+            // Show all evacuation routes: ensure layer on + fit bounds
+            document.getElementById('evac-routes-btn').addEventListener('click', () => {
+                document.getElementById('toggle-routes').checked = true;
+                routesLayer.addTo(map);
+                const group = new L.featureGroup();
+                routesLayer.eachLayer(layer => group.addLayer(layer));
+                if (group.getBounds().isValid()) map.fitBounds(group.getBounds().pad(0.1));
+            });
+
+            // Locate Me
+            document.getElementById('locate-btn').addEventListener('click', () => {
+                map.locate({setView: true, maxZoom: 16});
+            });
+
+            // Also on locate success, add a temporary marker
+            map.on('locationfound', (e) => {
+                L.marker(e.latlng, {icon: L.divIcon({html: '<div style="background:#3498db; width:16px; height:16px; border-radius:50%; border:3px solid white;"></div>', iconSize: [16,16]})})
+                 .addTo(map).bindPopup('You are here').openPopup();
+            });
+
+            // ----- additional: clear route line on map click? not necessary, but fine -----
+            map.on('click', () => { if(currentRouteLine) { map.removeLayer(currentRouteLine); currentRouteLine = null; } });
+
+            // Initialize layer toggle states (already checked by default)
+        })();
+    </script>
+</body>
+</html>
+```
